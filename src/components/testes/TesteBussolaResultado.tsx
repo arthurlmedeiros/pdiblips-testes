@@ -28,6 +28,10 @@ export default function TesteBussolaResultado({
   const chartData = Object.entries(pontuacoes).map(([categoria, pontuacao]) => ({
     categoria,
     pontuacao,
+    zona_otimo: 4,
+    zona_bom: 3,
+    zona_atencao: 2,
+    zona_critico: 1,
   }));
 
   const handlePrint = () => {
@@ -101,12 +105,12 @@ export default function TesteBussolaResultado({
       <CardContent className="space-y-8">
         {/* Radar Chart */}
         <div className="bg-muted/50 rounded-lg p-4">
-          <ResponsiveContainer width="100%" height={450}>
+          <ResponsiveContainer width="100%" height={420}>
             <RadarChart data={chartData} cx="50%" cy="50%" outerRadius="70%">
               <PolarGrid
                 gridType="polygon"
                 stroke="hsl(var(--border))"
-                strokeOpacity={0.6}
+                strokeOpacity={0.4}
               />
               <PolarAngleAxis
                 dataKey="categoria"
@@ -122,14 +126,21 @@ export default function TesteBussolaResultado({
                 tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
               />
+              {/* Zonas de referência (baixo → cima) */}
+              <Radar dataKey="zona_otimo" fill="#22c55e" fillOpacity={0.12} stroke="none" />
+              <Radar dataKey="zona_bom" fill="#3b82f6" fillOpacity={0.12} stroke="none" />
+              <Radar dataKey="zona_atencao" fill="#f59e0b" fillOpacity={0.12} stroke="none" />
+              <Radar dataKey="zona_critico" fill="#ef4444" fillOpacity={0.12} stroke="none" />
+              {/* Dados reais */}
               <Radar
                 name="Pontuação"
                 dataKey="pontuacao"
                 stroke="hsl(var(--primary))"
                 fill="hsl(var(--primary))"
-                fillOpacity={0.3}
+                fillOpacity={0.5}
+                strokeWidth={2}
                 dot={{
-                  r: 5,
+                  r: 4,
                   fill: "hsl(var(--primary))",
                   stroke: "hsl(var(--primary-foreground))",
                   strokeWidth: 2,
@@ -138,6 +149,20 @@ export default function TesteBussolaResultado({
               <Tooltip content={<CustomTooltip />} />
             </RadarChart>
           </ResponsiveContainer>
+          {/* Legenda de zonas */}
+          <div className="flex items-center justify-center gap-4 flex-wrap mt-1 pb-1">
+            {[
+              { color: "#ef4444", label: "Crítico (0–1)" },
+              { color: "#f59e0b", label: "Atenção (1–2)" },
+              { color: "#3b82f6", label: "Bom (2–3)" },
+              { color: "#22c55e", label: "Ótimo (3–4)" },
+            ].map(({ color, label }) => (
+              <span key={label} className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Detalhamento por categoria */}

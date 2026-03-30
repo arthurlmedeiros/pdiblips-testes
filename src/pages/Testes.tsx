@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Brain, Award, Compass, BarChart3, Loader2 } from "lucide-react";
+import { Plus, Brain, Award, Compass, BarChart3, Loader2, ChevronRight } from "lucide-react";
 import { useTestesPerfil, type TestePerfil } from "@testes/hooks/useTestesPerfil";
 import { useTestesCLevel, type TesteCLevel } from "@testes/hooks/useTestesCLevel";
 import { useTestesBussola, type TesteBussola } from "@testes/hooks/useTestesBussola";
@@ -54,6 +54,11 @@ const Testes = () => {
   const isAdmin = hasRole("admin_geral");
   const isDiretor = hasRole("admin_diretor");
   const isCeo = hasRole("admin_ceo");
+
+  const hasPerfilCompleto = !!(testesPerfil && testesPerfil.length > 0);
+  const hasCLevelCompleto = !!(testesCLevel && testesCLevel.some((t) => t.status === "concluido"));
+  const hasBussolaCompleto = !!(testesBussola && testesBussola.length > 0);
+  const hasPercentilCompleto = !!(testesPercentil && testesPercentil.some((t) => t.status === "concluido"));
 
   const resetStates = () => {
     setNovoTestePerfil(false);
@@ -113,17 +118,21 @@ const Testes = () => {
       ) : (
         <Tabs defaultValue="perfil">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="perfil">
+            <TabsTrigger value="perfil" className="relative">
               <Brain className="mr-2 h-4 w-4" /> Perfil Comportamental
+              {hasPerfilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
             </TabsTrigger>
-            <TabsTrigger value="clevel">
+            <TabsTrigger value="clevel" className="relative">
               <Award className="mr-2 h-4 w-4" /> Avaliação C-Level
+              {hasCLevelCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
             </TabsTrigger>
-            <TabsTrigger value="bussola">
+            <TabsTrigger value="bussola" className="relative">
               <Compass className="mr-2 h-4 w-4" /> Bússola Alta Performance
+              {hasBussolaCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
             </TabsTrigger>
-            <TabsTrigger value="percentil">
+            <TabsTrigger value="percentil" className="relative">
               <BarChart3 className="mr-2 h-4 w-4" /> Maturidade Executiva
+              {hasPercentilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
             </TabsTrigger>
           </TabsList>
 
@@ -149,17 +158,34 @@ const Testes = () => {
                     {testesPerfil.map((t) => (
                       <Card key={t.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setVerPerfil(t)}>
                         <CardContent className="flex items-center justify-between py-3 px-4">
-                          <div>
-                            <p className="text-sm font-medium">Teste de Perfil Comportamental</p>
-                            <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</p>
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{t.perfil_dominante === "idealista" ? "🦅" : t.perfil_dominante === "focado" ? "🦈" : t.perfil_dominante === "afetivo" ? "🐱" : "🐺"}</span>
+                            <div>
+                              <p className="text-sm font-medium">Perfil Comportamental</p>
+                              <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</p>
+                            </div>
                           </div>
-                          <Badge variant="secondary">{PERFIL_ANIMAL_NAME[t.perfil_dominante] || t.perfil_dominante}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{PERFIL_ANIMAL_NAME[t.perfil_dominante] || t.perfil_dominante}</Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum teste realizado ainda.</p>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <Brain className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium text-foreground">Nenhum teste realizado ainda</p>
+                        <p className="text-sm text-muted-foreground mt-1">Descubra seu perfil comportamental dominante entre os 4 arquétipos.</p>
+                      </div>
+                      <Button size="sm" onClick={() => setNovoTestePerfil(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}
@@ -196,15 +222,29 @@ const Testes = () => {
                             <p className="text-sm font-medium">Avaliação C-Level</p>
                             <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</p>
                           </div>
-                          <Badge variant={t.status === "concluido" ? "default" : "secondary"}>
-                            {t.status === "concluido" ? "Concluído" : t.status === "aguardando_aprofundamento" ? "Em andamento" : "Iniciado"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={t.status === "concluido" ? "default" : "secondary"}>
+                              {t.status === "concluido" ? "Concluído" : t.status === "aguardando_aprofundamento" ? "Em andamento" : "Iniciado"}
+                            </Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma avaliação realizada ainda.</p>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <Award className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
+                        <p className="text-sm text-muted-foreground mt-1">Avaliação aprofundada com laudo gerado por IA para perfis executivos.</p>
+                      </div>
+                      <Button size="sm" onClick={() => setNovoTesteCLevel(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}
@@ -241,13 +281,27 @@ const Testes = () => {
                             <p className="text-sm font-medium">Bússola da Alta Performance</p>
                             <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</p>
                           </div>
-                          <Badge variant="secondary">{t.pontuacao_total}/76</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{t.pontuacao_total}/76</Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma avaliação realizada ainda.</p>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <Compass className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
+                        <p className="text-sm text-muted-foreground mt-1">Mapeie os pilares de alta performance em 19 dimensões comportamentais.</p>
+                      </div>
+                      <Button size="sm" onClick={() => setNovoTesteBussola(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}
@@ -313,7 +367,7 @@ const Testes = () => {
                     {testesPercentil.map((t) => (
                       <Card
                         key={t.id}
-                        className="cursor-pointer hover:bg-accent/50 transition-colors"
+                        className={`transition-colors ${t.status === "concluido" ? "cursor-pointer hover:bg-accent/50" : "opacity-70"}`}
                         onClick={() => t.status === "concluido" && setVerPercentil(t)}
                       >
                         <CardContent className="flex items-center justify-between py-3 px-4">
@@ -330,13 +384,25 @@ const Testes = () => {
                                 {t.status === "aguardando_ia" ? "Processando" : "Em andamento"}
                               </Badge>
                             )}
+                            {t.status === "concluido" && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma avaliação realizada ainda.</p>
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <BarChart3 className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
+                        <p className="text-sm text-muted-foreground mt-1">Avalie a maturidade executiva com score percentual e laudo detalhado por pilar.</p>
+                      </div>
+                      <Button size="sm" onClick={() => setNovoTestePercentil(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}

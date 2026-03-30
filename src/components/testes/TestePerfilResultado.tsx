@@ -103,8 +103,8 @@ export default function TestePerfilResultado({
 
   const chartData = Object.entries(resultado).map(([key, value]) => ({
     perfil: ANIMAL_MAP[key]?.animal || key,
-    pontuacao: value,
-    fullMark: 25,
+    pontuacao: Math.round((value / 25) * 100),
+    fullMark: 100,
   }));
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -113,12 +113,10 @@ export default function TestePerfilResultado({
     return (
       <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
         <p className="font-medium text-sm text-foreground">{perfil}</p>
-        <p className="text-primary font-bold">{pontuacao} pontos</p>
+        <p className="text-primary font-bold">{pontuacao}%</p>
       </div>
     );
   };
-
-  const maxScore = Math.max(...Object.values(resultado), 1);
 
   return (
     <div className="space-y-6">
@@ -157,9 +155,10 @@ export default function TestePerfilResultado({
                   tickLine={false}
                 />
                 <PolarRadiusAxis
-                  domain={[0, maxScore]}
+                  domain={[0, 100]}
                   tickCount={5}
                   tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  tickFormatter={(v) => `${v}%`}
                   axisLine={false}
                 />
                 <Radar
@@ -185,7 +184,7 @@ export default function TestePerfilResultado({
             {Object.entries(resultado).map(([key, value]) => {
               const info = ANIMAL_MAP[key];
               if (!info) return null;
-              const pct = maxScore > 0 ? (value / maxScore) * 100 : 0;
+              const pct = (value / 25) * 100;
               const isDominante = key === perfilDominante;
               return (
                 <div
@@ -198,7 +197,7 @@ export default function TestePerfilResultado({
                 >
                   <span className="text-2xl">{info.emoji}</span>
                   <p className="text-xs font-semibold mt-1 text-foreground">{info.animal}</p>
-                  <p className="text-lg font-bold text-primary">{value}</p>
+                  <p className="text-lg font-bold text-primary">{Math.round(pct)}%</p>
                   <div className="mt-1 h-1.5 w-full rounded-full bg-background">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
