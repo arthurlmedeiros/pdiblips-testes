@@ -318,7 +318,7 @@ function SectionCard({ section }: { section: Section }) {
             {section.title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <CardContent className="text-sm text-foreground leading-relaxed">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content.trim()}</ReactMarkdown>
         </CardContent>
       </Card>
@@ -623,18 +623,7 @@ export default function TestePercentilResultado({
           </h3>
           {sections.length > 0 ? (
             <div className="space-y-4">
-              {sections.map((section, i) => {
-                const isGeral = section.title.toLowerCase().includes("visão geral");
-                return isGeral ? (
-                  <SectionCard key={i} section={section} />
-                ) : null;
-              })}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sections.map((section, i) => {
-                  const isGeral = section.title.toLowerCase().includes("visão geral");
-                  return isGeral ? null : <SectionCard key={i} section={section} />;
-                })}
-              </div>
+              {sections.map((section, i) => <SectionCard key={i} section={section} />)}
             </div>
           ) : (
             <Card>
