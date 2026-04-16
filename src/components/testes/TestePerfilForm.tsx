@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
-import { useTestesPerfil } from "@testes/hooks/useTestesPerfil";
+import { useTestesPerfil } from "@/hooks/useTestesPerfil";
 import { toast } from "sonner";
 import TestePerfilResultado from "./TestePerfilResultado";
 
@@ -179,7 +179,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 interface Props {
-  colaboradorId: string;
+  colaboradorId: string | undefined;
   onConcluido: () => void;
 }
 
@@ -230,7 +230,7 @@ export default function TestePerfilForm({ colaboradorId, onConcluido }: Props) {
 
     try {
       await inserir.mutateAsync({
-        colaborador_id: colaboradorId,
+        colaborador_id: colaboradorId || null,
         respostas: respostasCompletas,
         resultado: counts,
         perfil_dominante: dominante,

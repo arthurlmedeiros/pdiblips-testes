@@ -6,8 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, CheckCircle, Loader2, Send } from "lucide-react";
-import { useTestesPercentil } from "@testes/hooks/useTestesPercentil";
-import { supabase } from "@core/integrations/supabase/client";
+import { useTestesPercentil } from "@/hooks/useTestesPercentil";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import TestePercentilResultado from "./TestePercentilResultado";
 
@@ -249,7 +249,7 @@ const ABERTAS_DIRETORIA: PerguntaAberta[] = [
 
 // ── Component ──
 interface Props {
-  colaboradorId: string;
+  colaboradorId: string | undefined;
   nivel: "gerencial" | "diretoria";
   onConcluido: () => void;
 }
@@ -321,7 +321,7 @@ export default function TestePercentilForm({ colaboradorId, nivel, onConcluido }
 
       // Create record
       const registro = await inserir.mutateAsync({
-        colaborador_id: colaboradorId,
+        colaborador_id: colaboradorId || null,
         nivel,
         respostas_fechadas: respostasFechadasObj,
         respostas_abertas: respostasAbertasObj,

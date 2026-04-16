@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
-import { useTestesBussola } from "@testes/hooks/useTestesBussola";
+import { useTestesBussola } from "@/hooks/useTestesBussola";
 import { toast } from "sonner";
 import TesteBussolaResultado from "./TesteBussolaResultado";
 
@@ -156,7 +156,7 @@ const CATEGORIAS: Categoria[] = [
 ];
 
 interface Props {
-  colaboradorId: string;
+  colaboradorId: string | undefined;
   onConcluido: () => void;
 }
 
@@ -196,7 +196,7 @@ export default function TesteBussolaForm({ colaboradorId, onConcluido }: Props) 
 
     try {
       await inserir.mutateAsync({
-        colaborador_id: colaboradorId,
+        colaborador_id: colaboradorId || null,
         respostas: respostasTexto,
         pontuacoes,
         pontuacao_total: total,

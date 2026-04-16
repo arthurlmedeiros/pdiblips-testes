@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Send, ArrowRight } from "lucide-react";
-import { useTestesCLevel } from "@testes/hooks/useTestesCLevel";
-import { supabase } from "@core/integrations/supabase/client";
+import { useTestesCLevel } from "@/hooks/useTestesCLevel";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import TesteCLevelResultado from "./TesteCLevelResultado";
 
@@ -19,7 +19,7 @@ const PERGUNTAS_INICIAIS = [
 ];
 
 interface Props {
-  colaboradorId: string;
+  colaboradorId: string | undefined;
   colaboradorNome?: string;
   colaboradorCargo?: string;
   onConcluido: () => void;
@@ -57,7 +57,7 @@ export default function TesteCLevelForm({
     try {
       // Save to DB
       const teste = await criar.mutateAsync({
-        colaborador_id: colaboradorId,
+        colaborador_id: colaboradorId || null,
         respostas_iniciais: respostas,
       });
       setTesteId(teste.id);

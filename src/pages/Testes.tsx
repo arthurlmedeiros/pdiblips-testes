@@ -109,20 +109,27 @@ const Testes = () => {
         </div>
       )}
 
-      {!colaboradorId && !loadingColabs && colaboradores && colaboradores.length > 0 && !colaboradores.find(c => c.user_id === user?.id) ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-            <p className="font-medium text-foreground">Usuário não vinculado</p>
-            <p className="text-sm">Seu usuário não está vinculado a um colaborador no organograma. Solicite ao administrador para fazer a vinculação.</p>
-          </CardContent>
-        </Card>
-      ) : !colaboradorId ? (
+      {/* Banner informativo para usuários sem vínculo com o organograma */}
+      {isGerente && !meuColaborador && !loadingColabs && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          Seu usuário ainda não está vinculado ao organograma. Seus testes serão salvos e vinculados automaticamente quando o administrador realizar a vinculação.
+        </div>
+      )}
+
+      {loadingColabs ? (
         <Card>
           <CardContent className="flex items-center justify-center py-16 text-muted-foreground">
-            {loadingColabs ? "Carregando..." : "Selecione um colaborador para visualizar ou iniciar testes"}
+            Carregando...
+          </CardContent>
+        </Card>
+      ) : (isAdmin || isCeo) && !colaboradorId ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-16 text-muted-foreground">
+            Selecione um colaborador para visualizar ou iniciar testes
           </CardContent>
         </Card>
       ) : (
+        <>
         <Tabs defaultValue="perfil">
           <TabsList className="flex-wrap">
             <TabsTrigger value="perfil" className="relative">
@@ -146,7 +153,7 @@ const Testes = () => {
           {/* TAB: Perfil Comportamental */}
           <TabsContent value="perfil" className="space-y-4">
             {novoTestePerfil ? (
-              <TestePerfilForm colaboradorId={colaboradorId} onConcluido={() => setNovoTestePerfil(false)} />
+              <TestePerfilForm colaboradorId={colaboradorId || undefined} onConcluido={() => setNovoTestePerfil(false)} />
             ) : verPerfil ? (
               <div className="space-y-4">
                 <TestePerfilResultado resultado={verPerfil.resultado} perfilDominante={verPerfil.perfil_dominante} createdAt={verPerfil.created_at} />
@@ -206,7 +213,7 @@ const Testes = () => {
           <TabsContent value="clevel" className="space-y-4">
             {novoTesteCLevel ? (
               <TesteCLevelForm
-                colaboradorId={colaboradorId}
+                colaboradorId={colaboradorId || undefined}
                 colaboradorNome={colaboradorSelecionado?.nome}
                 colaboradorCargo={colaboradorSelecionado?.cargo || undefined}
                 onConcluido={() => setNovoTesteCLevel(false)}
@@ -268,7 +275,7 @@ const Testes = () => {
           {/* TAB: Bússola Alta Performance */}
           <TabsContent value="bussola" className="space-y-4">
             {novoTesteBussola ? (
-              <TesteBussolaForm colaboradorId={colaboradorId} onConcluido={() => setNovoTesteBussola(false)} />
+              <TesteBussolaForm colaboradorId={colaboradorId || undefined} onConcluido={() => setNovoTesteBussola(false)} />
             ) : verBussola ? (
               <div className="space-y-4">
                 <TesteBussolaResultado
@@ -330,7 +337,7 @@ const Testes = () => {
           <TabsContent value="percentil" className="space-y-4">
             {novoTestePercentil ? (
               <TestePercentilForm
-                colaboradorId={colaboradorId}
+                colaboradorId={colaboradorId || undefined}
                 nivel={percentilNivel}
                 onConcluido={() => setNovoTestePercentil(false)}
               />
@@ -438,6 +445,7 @@ const Testes = () => {
             colaboradores={colaboradores.filter(c => c.user_id !== user?.id)}
           />
         )}
+        </>
       )}
     </div>
   );
