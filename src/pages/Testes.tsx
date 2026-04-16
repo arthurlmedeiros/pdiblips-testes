@@ -5,20 +5,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Brain, Award, Compass, BarChart3, Loader2, ChevronRight } from "lucide-react";
-import { useTestesPerfil, type TestePerfil } from "@testes/hooks/useTestesPerfil";
-import { useTestesCLevel, type TesteCLevel } from "@testes/hooks/useTestesCLevel";
-import { useTestesBussola, type TesteBussola } from "@testes/hooks/useTestesBussola";
-import { useTestesPercentil, type TestePercentil } from "@testes/hooks/useTestesPercentil";
-import { useColaboradores } from "@organograma/hooks/useColaboradores";
-import { useAuth } from "@core/contexts/AuthContext";
-import TestePerfilForm from "@testes/components/testes/TestePerfilForm";
-import TestePerfilResultado, { PERFIL_ANIMAL_NAME } from "@testes/components/testes/TestePerfilResultado";
-import TesteCLevelForm from "@testes/components/testes/TesteCLevelForm";
-import TesteCLevelResultado from "@testes/components/testes/TesteCLevelResultado";
-import TesteBussolaForm from "@testes/components/testes/TesteBussolaForm";
-import TesteBussolaResultado from "@testes/components/testes/TesteBussolaResultado";
-import TestePercentilForm from "@testes/components/testes/TestePercentilForm";
-import TestePercentilResultado from "@testes/components/testes/TestePercentilResultado";
+import { useTestesPerfil, type TestePerfil } from "@/hooks/useTestesPerfil";
+import { useTestesCLevel, type TesteCLevel } from "@/hooks/useTestesCLevel";
+import { useTestesBussola, type TesteBussola } from "@/hooks/useTestesBussola";
+import { useTestesPercentil, type TestePercentil } from "@/hooks/useTestesPercentil";
+import { useColaboradores } from "@/hooks/useColaboradores";
+import { useAuth } from "@/contexts/AuthContext";
+import TestePerfilForm from "@/components/testes/TestePerfilForm";
+import TestePerfilResultado, { PERFIL_ANIMAL_NAME } from "@/components/testes/TestePerfilResultado";
+import TesteCLevelForm from "@/components/testes/TesteCLevelForm";
+import TesteCLevelResultado from "@/components/testes/TesteCLevelResultado";
+import TesteBussolaForm from "@/components/testes/TesteBussolaForm";
+import TesteBussolaResultado from "@/components/testes/TesteBussolaResultado";
+import TestePercentilForm from "@/components/testes/TestePercentilForm";
+import TestePercentilResultado from "@/components/testes/TestePercentilResultado";
+import TesteEquipeSection from "@/components/testes/TesteEquipeSection";
 
 const Testes = () => {
   const { data: colaboradores, isLoading: loadingColabs } = useColaboradores();
@@ -54,6 +55,10 @@ const Testes = () => {
   const isAdmin = hasRole("admin_geral");
   const isDiretor = hasRole("admin_diretor");
   const isCeo = hasRole("admin_ceo");
+  const isGerente = !isAdmin && !isDiretor && !isCeo;
+  const meuColaborador = colaboradores?.find(c => c.user_id === user?.id);
+  const isOwn = !!meuColaborador && colaboradorId === meuColaborador.id;
+  const canStartTests = isGerente || isDiretor || isOwn;
 
   const hasPerfilCompleto = !!(testesPerfil && testesPerfil.length > 0);
   const hasCLevelCompleto = !!(testesCLevel && testesCLevel.some((t) => t.status === "concluido"));
@@ -82,25 +87,27 @@ const Testes = () => {
         </p>
       </div>
 
-      {/* Seletor de colaborador */}
-      <div className="max-w-sm">
-        <Select value={colaboradorId} onValueChange={(v) => { setColaboradorId(v); resetStates(); }}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um colaborador" />
-          </SelectTrigger>
-          <SelectContent>
-            {loadingColabs ? (
-              <SelectItem value="_loading" disabled>Carregando...</SelectItem>
-            ) : (
-              colaboradores?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome} {c.cargo ? `- ${c.cargo}` : ""}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Seletor de colaborador — apenas admin e CEO */}
+      {(isAdmin || isCeo) && (
+        <div className="max-w-sm">
+          <Select value={colaboradorId} onValueChange={(v) => { setColaboradorId(v); resetStates(); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um colaborador" />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingColabs ? (
+                <SelectItem value="_loading" disabled>Carregando...</SelectItem>
+              ) : (
+                colaboradores?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome} {c.cargo ? `- ${c.cargo}` : ""}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {!colaboradorId && !loadingColabs && colaboradores && colaboradores.length > 0 && !colaboradores.find(c => c.user_id === user?.id) ? (
         <Card>
@@ -147,9 +154,11 @@ const Testes = () => {
               </div>
             ) : (
               <>
-                <Button onClick={() => setNovoTestePerfil(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Iniciar Teste de Perfil
-                </Button>
+                {canStartTests && (
+                  <Button onClick={() => setNovoTestePerfil(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Iniciar Teste de Perfil
+                  </Button>
+                )}
                 {loadingPerfil ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : testesPerfil && testesPerfil.length > 0 ? (
@@ -181,9 +190,11 @@ const Testes = () => {
                         <p className="font-medium text-foreground">Nenhum teste realizado ainda</p>
                         <p className="text-sm text-muted-foreground mt-1">Descubra seu perfil comportamental dominante entre os 4 arquétipos.</p>
                       </div>
-                      <Button size="sm" onClick={() => setNovoTestePerfil(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
-                      </Button>
+                      {canStartTests && (
+                        <Button size="sm" onClick={() => setNovoTestePerfil(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -207,9 +218,11 @@ const Testes = () => {
               </div>
             ) : (
               <>
-                <Button onClick={() => setNovoTesteCLevel(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Iniciar Avaliação C-Level
-                </Button>
+                {canStartTests && (
+                  <Button onClick={() => setNovoTesteCLevel(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Iniciar Avaliação C-Level
+                  </Button>
+                )}
                 {loadingCLevel ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : testesCLevel && testesCLevel.length > 0 ? (
@@ -240,9 +253,11 @@ const Testes = () => {
                         <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
                         <p className="text-sm text-muted-foreground mt-1">Avaliação aprofundada com laudo gerado por IA para perfis executivos.</p>
                       </div>
-                      <Button size="sm" onClick={() => setNovoTesteCLevel(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
-                      </Button>
+                      {canStartTests && (
+                        <Button size="sm" onClick={() => setNovoTesteCLevel(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -266,9 +281,11 @@ const Testes = () => {
               </div>
             ) : (
               <>
-                <Button onClick={() => setNovoTesteBussola(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Iniciar Bússola da Alta Performance
-                </Button>
+                {canStartTests && (
+                  <Button onClick={() => setNovoTesteBussola(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Iniciar Bússola da Alta Performance
+                  </Button>
+                )}
                 {loadingBussola ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : testesBussola && testesBussola.length > 0 ? (
@@ -297,9 +314,11 @@ const Testes = () => {
                         <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
                         <p className="text-sm text-muted-foreground mt-1">Mapeie os pilares de alta performance em 19 dimensões comportamentais.</p>
                       </div>
-                      <Button size="sm" onClick={() => setNovoTesteBussola(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
-                      </Button>
+                      {canStartTests && (
+                        <Button size="sm" onClick={() => setNovoTesteBussola(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -331,32 +350,34 @@ const Testes = () => {
             ) : (
               <>
                 {/* Botões de iniciar com lógica de role */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  {isAdmin ? (
-                    <>
-                      <Select value={percentilNivel} onValueChange={(v) => setPercentilNivel(v as "gerencial" | "diretoria")}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="gerencial">Nível Gerencial</SelectItem>
-                          <SelectItem value="diretoria">Nível Diretoria</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={() => setNovoTestePercentil(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Iniciar Teste
+                {canStartTests && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {isAdmin ? (
+                      <>
+                        <Select value={percentilNivel} onValueChange={(v) => setPercentilNivel(v as "gerencial" | "diretoria")}>
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gerencial">Nível Gerencial</SelectItem>
+                            <SelectItem value="diretoria">Nível Diretoria</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={() => setNovoTestePercentil(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar Teste
+                        </Button>
+                      </>
+                    ) : isDiretor || isCeo ? (
+                      <Button onClick={() => { setPercentilNivel("diretoria"); setNovoTestePercentil(true); }}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar Teste Diretoria
                       </Button>
-                    </>
-                  ) : isDiretor || isCeo ? (
-                    <Button onClick={() => { setPercentilNivel("diretoria"); setNovoTestePercentil(true); }}>
-                      <Plus className="mr-2 h-4 w-4" /> Iniciar Teste Diretoria
-                    </Button>
-                  ) : (
-                    <Button onClick={() => { setPercentilNivel("gerencial"); setNovoTestePercentil(true); }}>
-                      <Plus className="mr-2 h-4 w-4" /> Iniciar Teste Gerencial
-                    </Button>
-                  )}
-                </div>
+                    ) : (
+                      <Button onClick={() => { setPercentilNivel("gerencial"); setNovoTestePercentil(true); }}>
+                        <Plus className="mr-2 h-4 w-4" /> Iniciar Teste Gerencial
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 {/* Histórico */}
                 {loadingPercentil ? (
@@ -398,9 +419,11 @@ const Testes = () => {
                         <p className="font-medium text-foreground">Nenhuma avaliação realizada ainda</p>
                         <p className="text-sm text-muted-foreground mt-1">Avalie a maturidade executiva com score percentual e laudo detalhado por pilar.</p>
                       </div>
-                      <Button size="sm" onClick={() => setNovoTestePercentil(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Iniciar agora
-                      </Button>
+                      {canStartTests && (
+                        <Button size="sm" onClick={() => setNovoTestePercentil(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -408,6 +431,13 @@ const Testes = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Seção Minha Equipe — admin, CEO e diretores */}
+        {(isAdmin || isCeo || isDiretor) && colaboradores && colaboradores.length > 0 && (
+          <TesteEquipeSection
+            colaboradores={colaboradores.filter(c => c.user_id !== user?.id)}
+          />
+        )}
       )}
     </div>
   );
