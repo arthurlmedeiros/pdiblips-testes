@@ -58,7 +58,9 @@ const Testes = () => {
   const isGerente = !isAdmin && !isDiretor && !isCeo;
   const meuColaborador = colaboradores?.find(c => c.user_id === user?.id);
   const isOwn = !!meuColaborador && colaboradorId === meuColaborador.id;
-  const canStartTests = isGerente || isDiretor || isOwn;
+  // Pode iniciar testes: usuário próprio (isOwn), gerente, diretor,
+  // ou qualquer um sem colaborador selecionado (exibe próprios testes via user_id)
+  const canStartTests = isGerente || isDiretor || isOwn || !colaboradorId;
 
   const hasPerfilCompleto = !!(testesPerfil && testesPerfil.length > 0);
   const hasCLevelCompleto = !!(testesCLevel && testesCLevel.some((t) => t.status === "concluido"));
@@ -120,12 +122,6 @@ const Testes = () => {
         <Card>
           <CardContent className="flex items-center justify-center py-16 text-muted-foreground">
             Carregando...
-          </CardContent>
-        </Card>
-      ) : (isAdmin || isCeo) && !colaboradorId ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-16 text-muted-foreground">
-            Selecione um colaborador para visualizar ou iniciar testes
           </CardContent>
         </Card>
       ) : (
