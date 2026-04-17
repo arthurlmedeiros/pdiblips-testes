@@ -58,9 +58,9 @@ const Testes = () => {
   const isGerente = !isAdmin && !isDiretor && !isCeo;
   const meuColaborador = colaboradores?.find(c => c.user_id === user?.id);
   const isOwn = !!meuColaborador && colaboradorId === meuColaborador.id;
-  // Pode iniciar testes: usuário próprio (isOwn), gerente, diretor,
+  // Pode iniciar testes: admin/CEO/diretor sempre, próprio colaborador selecionado,
   // ou qualquer um sem colaborador selecionado (exibe próprios testes via user_id)
-  const canStartTests = isGerente || isDiretor || isOwn || !colaboradorId;
+  const canStartTests = isAdmin || isCeo || isDiretor || isOwn || !colaboradorId;
 
   const hasPerfilCompleto = !!(testesPerfil && testesPerfil.length > 0);
   const hasCLevelCompleto = !!(testesCLevel && testesCLevel.some((t) => t.status === "concluido"));
