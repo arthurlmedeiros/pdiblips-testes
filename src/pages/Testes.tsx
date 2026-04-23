@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Brain, Award, Compass, BarChart3, Loader2, ChevronRight } from "lucide-react";
+import { Plus, Brain, Award, Compass, BarChart3, Loader2, ChevronRight, ClipboardCheck } from "lucide-react";
 import { useTestesPerfil, type TestePerfil } from "@/hooks/useTestesPerfil";
 import { useTestesCLevel, type TesteCLevel } from "@/hooks/useTestesCLevel";
 import { useTestesBussola, type TesteBussola } from "@/hooks/useTestesBussola";
 import { useTestesPercentil, type TestePercentil } from "@/hooks/useTestesPercentil";
+import { useTestesAutoAvaliacao, type TesteAutoAvaliacao } from "@/hooks/useTestesAutoAvaliacao";
 import { useColaboradores } from "@/hooks/useColaboradores";
 import { useAuth } from "@/contexts/AuthContext";
 import TestePerfilForm from "@/components/testes/TestePerfilForm";
@@ -19,6 +20,8 @@ import TesteBussolaForm from "@/components/testes/TesteBussolaForm";
 import TesteBussolaResultado from "@/components/testes/TesteBussolaResultado";
 import TestePercentilForm from "@/components/testes/TestePercentilForm";
 import TestePercentilResultado, { getBandName, getDisplayScore } from "@/components/testes/TestePercentilResultado";
+import TesteAutoAvaliacaoForm from "@/components/testes/TesteAutoAvaliacaoForm";
+import TesteAutoAvaliacaoResultado from "@/components/testes/TesteAutoAvaliacaoResultado";
 import TesteEquipeSection from "@/components/testes/TesteEquipeSection";
 
 const Testes = () => {
@@ -26,7 +29,6 @@ const Testes = () => {
   const { roles, hasRole, user } = useAuth();
   const [colaboradorId, setColaboradorId] = useState<string>("");
 
-  // Auto-selecionar colaborador vinculado ao usuário logado
   useEffect(() => {
     if (colaboradores && user && !colaboradorId) {
       const meuColaborador = colaboradores.find(c => c.user_id === user.id);
@@ -35,6 +37,9 @@ const Testes = () => {
       }
     }
   }, [colaboradores, user]);
+
+  const [novoAutoAvaliacao, setNovoAutoAvaliacao] = useState(false);
+  const [verAutoAvaliacao, setVerAutoAvaliacao] = useState<TesteAutoAvaliacao | null>(null);
   const [novoTestePerfil, setNovoTestePerfil] = useState(false);
   const [novoTesteCLevel, setNovoTesteCLevel] = useState(false);
   const [novoTesteBussola, setNovoTesteBussola] = useState(false);
@@ -45,6 +50,7 @@ const Testes = () => {
   const [verBussola, setVerBussola] = useState<TesteBussola | null>(null);
   const [verPercentil, setVerPercentil] = useState<TestePercentil | null>(null);
 
+  const { data: autoAvaliacoes, isLoading: loadingAutoAvaliacao } = useTestesAutoAvaliacao(colaboradorId || undefined);
   const { data: testesPerfil, isLoading: loadingPerfil } = useTestesPerfil(colaboradorId);
   const { data: testesCLevel, isLoading: loadingCLevel } = useTestesCLevel(colaboradorId);
   const { data: testesBussola, isLoading: loadingBussola } = useTestesBussola(colaboradorId);
@@ -58,16 +64,17 @@ const Testes = () => {
   const isGerente = !isAdmin && !isDiretor && !isCeo;
   const meuColaborador = colaboradores?.find(c => c.user_id === user?.id);
   const isOwn = !!meuColaborador && colaboradorId === meuColaborador.id;
-  // Pode iniciar testes: admin/CEO/diretor sempre, próprio colaborador selecionado,
-  // ou qualquer um sem colaborador selecionado (exibe próprios testes via user_id)
   const canStartTests = isAdmin || isCeo || isDiretor || isOwn || !colaboradorId;
 
+  const hasAutoAvaliacaoCompleto = !!(autoAvaliacoes && autoAvaliacoes.length > 0);
   const hasPerfilCompleto = !!(testesPerfil && testesPerfil.length > 0);
   const hasCLevelCompleto = !!(testesCLevel && testesCLevel.some((t) => t.status === "concluido"));
   const hasBussolaCompleto = !!(testesBussola && testesBussola.length > 0);
   const hasPercentilCompleto = !!(testesPercentil && testesPercentil.some((t) => t.status === "concluido"));
 
   const resetStates = () => {
+    setNovoAutoAvaliacao(false);
+    setVerAutoAvaliacao(null);
     setNovoTestePerfil(false);
     setNovoTesteCLevel(false);
     setNovoTesteBussola(false);
@@ -85,7 +92,7 @@ const Testes = () => {
           Testes & Avaliações
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Avaliações de perfil comportamental, performance C-Level, Bússola da Alta Performance e Maturidade Executiva
+          Auto avaliação, perfil comportamental, performance C-Level, Bússola da Alta Performance e Maturidade Executiva
         </p>
       </div>
 
@@ -126,25 +133,99 @@ const Testes = () => {
         </Card>
       ) : (
         <>
-        <Tabs defaultValue="perfil">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="perfil" className="relative">
-              <Brain className="mr-2 h-4 w-4" /> Perfil Comportamental
-              {hasPerfilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
-            </TabsTrigger>
-            <TabsTrigger value="clevel" className="relative">
-              <Award className="mr-2 h-4 w-4" /> Avaliação C-Level
-              {hasCLevelCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
-            </TabsTrigger>
-            <TabsTrigger value="bussola" className="relative">
-              <Compass className="mr-2 h-4 w-4" /> Bússola Alta Performance
-              {hasBussolaCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
-            </TabsTrigger>
-            <TabsTrigger value="percentil" className="relative">
-              <BarChart3 className="mr-2 h-4 w-4" /> Maturidade Executiva
-              {hasPercentilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="auto_avaliacao">
+          {/* TabsList com scroll horizontal para evitar sobreposição em mobile */}
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="flex-nowrap w-max min-w-full">
+              <TabsTrigger value="auto_avaliacao" className="relative flex-shrink-0">
+                <ClipboardCheck className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Auto Avaliação</span>
+                {hasAutoAvaliacaoCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="perfil" className="relative flex-shrink-0">
+                <Brain className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Perfil Comportamental</span>
+                {hasPerfilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="clevel" className="relative flex-shrink-0">
+                <Award className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Avaliação C-Level</span>
+                {hasCLevelCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="bussola" className="relative flex-shrink-0">
+                <Compass className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Bússola Alta Performance</span>
+                {hasBussolaCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="percentil" className="relative flex-shrink-0">
+                <BarChart3 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Maturidade Executiva</span>
+                {hasPercentilCompleto && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* TAB: Auto Avaliação */}
+          <TabsContent value="auto_avaliacao" className="space-y-4">
+            {novoAutoAvaliacao ? (
+              <TesteAutoAvaliacaoForm
+                colaboradorId={colaboradorId || undefined}
+                onConcluido={() => setNovoAutoAvaliacao(false)}
+              />
+            ) : verAutoAvaliacao ? (
+              <div className="space-y-4">
+                <TesteAutoAvaliacaoResultado teste={verAutoAvaliacao} />
+                <Button variant="outline" onClick={() => setVerAutoAvaliacao(null)}>Voltar ao histórico</Button>
+              </div>
+            ) : (
+              <>
+                {canStartTests && (
+                  <Button onClick={() => setNovoAutoAvaliacao(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Iniciar Auto Avaliação
+                  </Button>
+                )}
+                {loadingAutoAvaliacao ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : autoAvaliacoes && autoAvaliacoes.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-muted-foreground">Histórico</h3>
+                    {autoAvaliacoes.map((t) => (
+                      <Card key={t.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setVerAutoAvaliacao(t)}>
+                        <CardContent className="flex items-center justify-between py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">Auto Avaliação</p>
+                              <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{t.pontuacao_total}/35</Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <ClipboardCheck className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium text-foreground">Nenhuma auto avaliação realizada ainda</p>
+                        <p className="text-sm text-muted-foreground mt-1">Registre sua formação, experiência e pontue suas competências em 7 dimensões.</p>
+                      </div>
+                      {canStartTests && (
+                        <Button size="sm" onClick={() => setNovoAutoAvaliacao(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Iniciar agora
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </TabsContent>
 
           {/* TAB: Perfil Comportamental */}
           <TabsContent value="perfil" className="space-y-4">
@@ -352,7 +433,6 @@ const Testes = () => {
               </div>
             ) : (
               <>
-                {/* Botões de iniciar com lógica de role */}
                 {canStartTests && (
                   <div className="flex items-center gap-3 flex-wrap">
                     {isAdmin ? (
@@ -382,7 +462,6 @@ const Testes = () => {
                   </div>
                 )}
 
-                {/* Histórico */}
                 {loadingPercentil ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : testesPercentil && testesPercentil.length > 0 ? (
@@ -439,6 +518,11 @@ const Testes = () => {
         {(isAdmin || isCeo || isDiretor) && colaboradores && colaboradores.length > 0 && (
           <TesteEquipeSection
             colaboradores={colaboradores.filter(c => c.user_id !== user?.id)}
+            onSelectColaborador={(id) => {
+              setColaboradorId(id);
+              resetStates();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
           />
         )}
         </>
