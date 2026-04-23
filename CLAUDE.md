@@ -57,6 +57,35 @@ type pdi_tipo_teste =
 | `bussola_alta_performance` | Diagnóstico de performance e engajamento | `pdi_testes_bussola` |
 | `percentil` | Posicionamento percentil em competências | `pdi_resultados_testes` |
 
+### Sistema de Percentil — 3 Bandas (vigente desde 2026-04-23)
+
+O teste de Maturidade Executiva usa **3 bandas de mercado** (migrado de 4):
+
+| Banda | Range raw (DB) | Threshold display |
+|-------|---------------|-------------------|
+| Percentil 25° | 0–50% | display 0–38 |
+| Percentil 50° | 50–95% | display 39–74 |
+| Percentil 75° | 95–100% | display 75–100 |
+
+**Campo `percentil` no banco**: score bruto 0–100 (`score_total / 75 × 100`). Nunca exibido diretamente.
+
+**Display score** (exibido na UI): remapeamento piecewise linear que garante que apenas raw ≥ 95% resulta em display ≥ 75:
+```typescript
+// Em TestePercentilResultado.tsx (exportada)
+function getDisplayScore(raw: number): number {
+  if (raw < 95) return Math.round(raw * 75 / 95);
+  return Math.round(75 + (raw - 95) * 5);
+}
+```
+
+**Régua visual**: barra linear 0–100, marcador em `displayScore%`. Larguras de zona proporcionais (39% / 36% / 25%).
+
+**`getBandName` e `getDisplayScore`** são exportadas de `TestePercentilResultado.tsx` — importar dali ao exibir em outros componentes (ex: `TesteEquipeSection`, `Testes.tsx`).
+
+Sem migration SQL — classificação é 100% frontend; histórico reclassifica automaticamente.
+
+---
+
 ### Padrão Form → Resultado
 
 Cada tipo segue o fluxo:

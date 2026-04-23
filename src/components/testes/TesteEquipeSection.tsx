@@ -10,7 +10,7 @@ import type { ColaboradorWithRelations } from "@/hooks/useColaboradores";
 import TestePerfilResultado, { PERFIL_ANIMAL_NAME } from "./TestePerfilResultado";
 import TesteCLevelResultado from "./TesteCLevelResultado";
 import TesteBussolaResultado from "./TesteBussolaResultado";
-import TestePercentilResultado from "./TestePercentilResultado";
+import TestePercentilResultado, { getBandName, getDisplayScore } from "./TestePercentilResultado";
 
 interface TesteEquipeSectionProps {
   colaboradores: ColaboradorWithRelations[];
@@ -175,7 +175,7 @@ export default function TesteEquipeSection({ colaboradores }: TesteEquipeSection
                             onClick={() => setDetalhe({ type: "percentil", data: m.percentil, nome: colab.nome })}
                           >
                             {m.percentil.status === "concluido"
-                              ? `${m.percentil.percentil}%`
+                              ? `${getBandName(m.percentil.percentil)} · ${getDisplayScore(m.percentil.percentil)}`
                               : "Em andamento"}
                           </Badge>
                         ) : (

@@ -18,7 +18,7 @@ import TesteCLevelResultado from "@/components/testes/TesteCLevelResultado";
 import TesteBussolaForm from "@/components/testes/TesteBussolaForm";
 import TesteBussolaResultado from "@/components/testes/TesteBussolaResultado";
 import TestePercentilForm from "@/components/testes/TestePercentilForm";
-import TestePercentilResultado from "@/components/testes/TestePercentilResultado";
+import TestePercentilResultado, { getBandName, getDisplayScore } from "@/components/testes/TestePercentilResultado";
 import TesteEquipeSection from "@/components/testes/TesteEquipeSection";
 
 const Testes = () => {
@@ -402,7 +402,7 @@ const Testes = () => {
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="capitalize">{t.nivel}</Badge>
                             {t.status === "concluido" ? (
-                              <Badge variant="default">{t.percentil}%</Badge>
+                              <Badge variant="default">{getBandName(t.percentil)} · {getDisplayScore(t.percentil)}</Badge>
                             ) : (
                               <Badge variant="secondary">
                                 {t.status === "aguardando_ia" ? "Processando" : "Em andamento"}

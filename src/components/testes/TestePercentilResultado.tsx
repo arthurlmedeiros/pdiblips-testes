@@ -57,24 +57,28 @@ const PILARES_NOMES = [
 
 // ── Percentile bands ──
 const PERCENTILE_BANDS = [
-  { label: "25°", min: 0, max: 50, color: "hsl(var(--destructive))" },
-  { label: "50°", min: 50, max: 75, color: "hsl(var(--accent-foreground) / 0.6)" },
-  { label: "75°", min: 75, max: 95, color: "hsl(var(--primary) / 0.7)" },
-  { label: "95°", min: 95, max: 100, color: "hsl(var(--primary))" },
+  { label: "25°", min: 0,  max: 50,  color: "hsl(var(--destructive))" },
+  { label: "50°", min: 50, max: 95,  color: "hsl(var(--accent-foreground) / 0.6)" },
+  { label: "75°", min: 95, max: 100, color: "hsl(var(--primary))" },
 ];
 
 function getBandForPercentil(p: number) {
   if (p < 50) return PERCENTILE_BANDS[0];
-  if (p < 75) return PERCENTILE_BANDS[1];
-  if (p < 95) return PERCENTILE_BANDS[2];
-  return PERCENTILE_BANDS[3];
+  if (p < 95) return PERCENTILE_BANDS[1];
+  return PERCENTILE_BANDS[2];
 }
 
-function getBandName(p: number) {
+export function getBandName(p: number) {
   if (p < 50) return "Percentil 25°";
-  if (p < 75) return "Percentil 50°";
-  if (p < 95) return "Percentil 75°";
-  return "Percentil 95°";
+  if (p < 95) return "Percentil 50°";
+  return "Percentil 75°";
+}
+
+// Remapeamento piecewise: raw 0–95% → display 0–75; raw 95–100% → display 75–100
+// Garante que apenas raw ≥ 95% produz displayScore ≥ 75 (threshold do Percentil 75°)
+export function getDisplayScore(raw: number): number {
+  if (raw < 95) return Math.round(raw * 75 / 95);
+  return Math.round(75 + (raw - 95) * 5);
 }
 
 // ── Sanitização anti-agent-talk ──
@@ -226,8 +230,21 @@ function parseBullets(markdown: string): string[] {
 
 // ── Sub-components ──
 
+// Thresholds do displayScore onde cada banda começa na régua 0–100
+// 25°/50° boundary: raw 50% → display Math.round(50*75/95) = 39
+// 50°/75° boundary: raw 95% → display 75 (exato)
+const BAND_DISPLAY_THRESHOLDS = [0, 39, 75, 100] as const;
+
 function PercentileRuler({ percentil }: { percentil: number }) {
   const activeBand = getBandForPercentil(percentil);
+  const display = getDisplayScore(percentil);
+
+  // Larguras proporcionais das zonas no espaço de display (0–100)
+  const zoneWidths = [
+    BAND_DISPLAY_THRESHOLDS[1] - BAND_DISPLAY_THRESHOLDS[0], // 39%
+    BAND_DISPLAY_THRESHOLDS[2] - BAND_DISPLAY_THRESHOLDS[1], // 36%
+    BAND_DISPLAY_THRESHOLDS[3] - BAND_DISPLAY_THRESHOLDS[2], // 25%
+  ];
 
   return (
     <div className="space-y-4">
@@ -250,16 +267,17 @@ function PercentileRuler({ percentil }: { percentil: number }) {
         })}
       </div>
 
-      {/* Barra de zonas */}
+      {/* Barra de zonas — largura proporcional ao range de display */}
       <div className="relative">
         <div className="flex h-8 rounded-full overflow-hidden border border-border/50 shadow-inner">
-          {PERCENTILE_BANDS.map((band) => {
+          {PERCENTILE_BANDS.map((band, i) => {
             const isActive = band.label === activeBand.label;
             return (
               <div
                 key={band.label}
-                className="relative flex-1 flex items-center justify-center transition-all"
+                className="relative flex items-center justify-center transition-all"
                 style={{
+                  width: `${zoneWidths[i]}%`,
                   backgroundColor: band.color,
                   opacity: isActive ? 1 : 0.25,
                 }}
@@ -268,10 +286,10 @@ function PercentileRuler({ percentil }: { percentil: number }) {
           })}
         </div>
 
-        {/* Marcador de posição */}
+        {/* Marcador posicionado pelo displayScore (escala 0–100) */}
         <div
           className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none"
-          style={{ left: `${percentil}%` }}
+          style={{ left: `${display}%` }}
         >
           <div
             className="w-5 h-5 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold"
@@ -282,19 +300,23 @@ function PercentileRuler({ percentil }: { percentil: number }) {
         </div>
       </div>
 
-      {/* Escala numérica */}
-      <div className="flex text-xs text-muted-foreground">
-        {PERCENTILE_BANDS.map((band) => (
-          <div key={band.label} className="flex-1 flex justify-between px-0.5">
-            <span>{band.min}%</span>
-          </div>
+      {/* Escala numérica com os thresholds reais */}
+      <div className="relative flex text-xs text-muted-foreground h-4">
+        {BAND_DISPLAY_THRESHOLDS.slice(0, -1).map((threshold, i) => (
+          <span
+            key={threshold}
+            className="absolute"
+            style={{ left: `${threshold}%`, transform: i === 0 ? "none" : "translateX(-50%)" }}
+          >
+            {threshold}
+          </span>
         ))}
-        <span className="text-xs text-muted-foreground">100%</span>
+        <span className="absolute right-0">100</span>
       </div>
 
       {/* Posição atual */}
       <p className="text-center text-sm font-medium" style={{ color: activeBand.color }}>
-        Você está no <strong>{activeBand.label}</strong> percentil · Pontuação: {percentil}%
+        Você está no <strong>Percentil {activeBand.label}</strong> · {display}
       </p>
     </div>
   );
@@ -461,7 +483,10 @@ export default function TestePercentilResultado({
 }: Props) {
   const band = getBandForPercentil(percentil);
   const bandName = getBandName(percentil);
-  const percentilBadgeVariant = percentil >= 70 ? "default" : percentil >= 40 ? "secondary" : "destructive";
+  const displayScore = getDisplayScore(percentil);
+  const percentilBadgeVariant =
+    band.label === "75°" ? "default" :
+    band.label === "50°" ? "secondary" : "destructive";
 
   const sanitizedLaudo = useMemo(() => (laudoIA ? sanitizeLaudo(laudoIA) : ""), [laudoIA]);
   const sections = useMemo(() => parseSections(sanitizedLaudo), [sanitizedLaudo]);
@@ -498,7 +523,7 @@ export default function TestePercentilResultado({
             <div className="flex items-center gap-3 flex-wrap">
               <CardTitle className="text-lg">Maturidade Executiva</CardTitle>
               <Badge variant={percentilBadgeVariant} className="text-sm font-bold">
-                Percentil: {percentil}%
+                Percentil {band.label} · {displayScore}
               </Badge>
               <Badge variant="outline" className="capitalize">
                 {nivel}
@@ -516,9 +541,9 @@ export default function TestePercentilResultado({
         </CardHeader>
         <CardContent>
           <div className="mb-4">
-            <span className="text-4xl font-bold text-foreground">{percentil}%</span>
+            <span className="text-4xl font-bold text-foreground">{displayScore}</span>
           </div>
-          <Progress value={percentil} className="h-3" />
+          <Progress value={displayScore} className="h-3" />
         </CardContent>
       </Card>
 
@@ -549,7 +574,7 @@ export default function TestePercentilResultado({
               className="flex items-center justify-center w-16 h-16 rounded-full text-white font-bold text-xl"
               style={{ backgroundColor: band.color }}
             >
-              {percentil}%
+              {displayScore}
             </div>
             <div>
               <p className="font-semibold text-foreground">{bandName}</p>
