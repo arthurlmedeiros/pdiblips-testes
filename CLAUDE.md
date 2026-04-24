@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Módulo de avaliações e testes comportamentais. Suporta quatro tipos de teste distintos, cada um com formulário de entrada e componente de exibição de resultados. Os resultados são armazenados em tabelas separadas por tipo.
+Módulo de avaliações e testes comportamentais. Suporta **cinco tipos de teste** distintos, cada um com formulário de entrada e componente de exibição de resultados. Os resultados são armazenados em tabelas separadas por tipo.
 
 ---
 
@@ -10,19 +10,23 @@ Módulo de avaliações e testes comportamentais. Suporta quatro tipos de teste 
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/pages/Testes.tsx` | Página principal — lista testes realizados e abre dialogs por tipo |
-| `src/components/testes/PerfilComportamentalForm.tsx` | Formulário para perfil comportamental (DISC/similar) |
-| `src/components/testes/PerfilComportamentalResultado.tsx` | Exibição dos resultados de perfil comportamental |
-| `src/components/testes/NivelCLevelForm.tsx` | Formulário para avaliação nível C-Level |
-| `src/components/testes/NivelCLevelResultado.tsx` | Exibição dos resultados de nível C-Level |
-| `src/components/testes/BussolaAltaPerformanceForm.tsx` | Formulário para bússola de alta performance |
-| `src/components/testes/BussolaAltaPerformanceResultado.tsx` | Exibição dos resultados da bússola |
-| `src/components/testes/PercentilForm.tsx` | Formulário para avaliação percentil |
-| `src/components/testes/PercentilResultado.tsx` | Exibição dos resultados percentil |
+| `src/pages/Testes.tsx` | Página principal — tabs responsivos, seletor de colaborador, histórico por teste |
+| `src/components/testes/TesteAutoAvaliacaoForm.tsx` | Formulário Auto Avaliação — 2 blocos: dados profissionais + pontuação 0–5 em 7 dimensões |
+| `src/components/testes/TesteAutoAvaliacaoResultado.tsx` | Resultado da Auto Avaliação — BarChart Recharts + badge de nível + dados profissionais |
+| `src/components/testes/TestePerfilForm.tsx` | Formulário do perfil comportamental (25 perguntas, resultado dominante) |
+| `src/components/testes/TestePerfilResultado.tsx` | Exibição do perfil comportamental — animal/arquétipo dominante |
+| `src/components/testes/TesteCLevelForm.tsx` | Formulário avaliação C-Level com aprofundamento via IA |
+| `src/components/testes/TesteCLevelResultado.tsx` | Exibição do laudo C-Level gerado por IA |
+| `src/components/testes/TesteBussolaForm.tsx` | Formulário Bússola Alta Performance (19 categorias) |
+| `src/components/testes/TesteBussolaResultado.tsx` | Resultado da Bússola — RadarChart por categoria |
+| `src/components/testes/TestePercentilForm.tsx` | Formulário Maturidade Executiva (gerencial/diretoria) |
+| `src/components/testes/TestePercentilResultado.tsx` | Resultado percentil — régua 3 bandas + laudo IA |
+| `src/components/testes/TesteEquipeSection.tsx` | Seção "Minha Equipe" — colapsível, tabela de testes por colaborador, Sheet de detalhe |
+| `src/hooks/useTestesAutoAvaliacao.ts` | CRUD de `pdi_testes_auto_avaliacao` via React Query |
 | `src/hooks/useTestesPerfil.ts` | CRUD de `pdi_testes_perfil` via React Query |
 | `src/hooks/useTestesCLevel.ts` | CRUD de `pdi_testes_clevel` via React Query |
-| `src/hooks/useTestesBussola.ts` | CRUD de testes bússola via React Query |
-| `src/hooks/useTestesPercentil.ts` | CRUD de testes percentil via React Query |
+| `src/hooks/useTestesBussola.ts` | CRUD de `pdi_testes_bussola` via React Query |
+| `src/hooks/useTestesPercentil.ts` | CRUD de `pdi_testes_percentil` via React Query |
 
 ---
 
@@ -32,34 +36,43 @@ Módulo de avaliações e testes comportamentais. Suporta quatro tipos de teste 
 
 | Tabela | Descrição |
 |--------|-----------|
-| `pdi_testes` | Registro base de teste — campos: `colaborador_id`, `tipo`, `data_realizacao`, `aplicador_id` |
-| `pdi_testes_perfil` | Resultados do perfil comportamental — scores por dimensão (D, I, S, C ou similar) |
-| `pdi_testes_clevel` | Avaliações C-Level — campos específicos de liderança e estratégia |
-| `pdi_testes_bussola` | Resultados da bússola de alta performance |
-| `pdi_resultados_testes` | Tabela consolidada de resultados para consulta no dashboard |
+| `pdi_testes_auto_avaliacao` | Auto Avaliação — `dados_pessoais (JSONB)`, `pontuacoes (JSONB)`, `pontuacao_total (NUMERIC)` |
+| `pdi_testes_perfil` | Perfil comportamental — `respostas (JSONB)`, `resultado (JSONB)`, `perfil_dominante (text)` |
+| `pdi_testes_clevel` | Avaliação C-Level — `respostas_iniciais`, `respostas_aprofundamento`, `laudo`, `status` |
+| `pdi_testes_bussola` | Bússola Alta Performance — `respostas (JSONB)`, `pontuacoes (JSONB)`, `pontuacao_total` |
+| `pdi_testes_percentil` | Maturidade Executiva — `nivel`, `score_total`, `percentil`, `laudo_ia`, `status` |
+| `pdi_resultados_testes` | Tabela legada de resultados — mantida para histórico |
 
-### Enum de Tipos
-
-```ts
-type pdi_tipo_teste =
-  | 'perfil_comportamental'
-  | 'nivel_clevel'
-  | 'bussola_alta_performance'
-  | 'percentil'
-```
+Todas as tabelas têm `colaborador_id` (nullable) e `user_id NOT NULL DEFAULT auth.uid()`.
 
 ### Tipos de Teste
 
-| Tipo | Descrição | Tabela de Resultado |
-|------|-----------|---------------------|
-| `perfil_comportamental` | Análise comportamental com múltiplas dimensões (estilo DISC) | `pdi_testes_perfil` |
-| `nivel_clevel` | Avaliação de maturidade para posições C-Level | `pdi_testes_clevel` |
-| `bussola_alta_performance` | Diagnóstico de performance e engajamento | `pdi_testes_bussola` |
-| `percentil` | Posicionamento percentil em competências | `pdi_resultados_testes` |
+| Tab | Tipo | Tabela | Hook |
+|-----|------|--------|------|
+| `auto_avaliacao` (1ª aba) | Auto Avaliação | `pdi_testes_auto_avaliacao` | `useTestesAutoAvaliacao` |
+| `perfil` | Perfil Comportamental | `pdi_testes_perfil` | `useTestesPerfil` |
+| `clevel` | Avaliação C-Level | `pdi_testes_clevel` | `useTestesCLevel` |
+| `bussola` | Bússola Alta Performance | `pdi_testes_bussola` | `useTestesBussola` |
+| `percentil` | Maturidade Executiva | `pdi_testes_percentil` | `useTestesPercentil` |
+
+### Auto Avaliação — Estrutura
+
+**Bloco 1 — Dados profissionais** (armazenado em `dados_pessoais JSONB`):
+```json
+{ "formacao": "...", "especializacao": "...", "idade": 30, "experiencia_cargo": 5, "residencia": "..." }
+```
+
+**Bloco 2 — Pontuações 0–5** (armazenado em `pontuacoes JSONB`):
+```json
+{ "fluencia_ingles": 3, "uso_tecnologia": 4, "comunicacao_clara": 5, "gestao_conflitos": 2, "decisao_pressao": 3, "organizacao_disciplina": 4, "responsabilidade_ownership": 5 }
+```
+
+**Badge de nível** (calculado no frontend a partir de `pontuacao_total` 0–35):
+- 0–10 → Iniciante | 11–20 → Em Desenvolvimento | 21–28 → Sênior | 29–35 → Referência
 
 ### Sistema de Percentil — 3 Bandas (vigente desde 2026-04-23)
 
-O teste de Maturidade Executiva usa **3 bandas de mercado** (migrado de 4):
+O teste de Maturidade Executiva usa **3 bandas de mercado**:
 
 | Banda | Range raw (DB) | Threshold display |
 |-------|---------------|-------------------|
@@ -67,59 +80,84 @@ O teste de Maturidade Executiva usa **3 bandas de mercado** (migrado de 4):
 | Percentil 50° | 50–95% | display 39–74 |
 | Percentil 75° | 95–100% | display 75–100 |
 
-**Campo `percentil` no banco**: score bruto 0–100 (`score_total / 75 × 100`). Nunca exibido diretamente.
+**`getBandName` e `getDisplayScore`** são exportadas de `TestePercentilResultado.tsx` — importar dali ao exibir em outros componentes.
 
-**Display score** (exibido na UI): remapeamento piecewise linear que garante que apenas raw ≥ 95% resulta em display ≥ 75:
+### TesteEquipeSection — Comportamento
+
+- **Fechado por padrão** (`aberto = false`); queries da equipe só carregam ao expandir (lazy loading)
+- **Click no nome** do colaborador → chama `onSelectColaborador(id)` passado pela página pai
+- Prop: `onSelectColaborador?: (id: string) => void`
+- A tabela tem `overflow-x-auto` para funcionar em mobile
+
+### Tabs Responsivas (Testes.tsx)
+
+```tsx
+// Wrapper com scroll horizontal — sem flex-wrap
+<div className="overflow-x-auto -mx-1 px-1">
+  <TabsList className="flex-nowrap w-max min-w-full">
+    <TabsTrigger className="flex-shrink-0">
+      <Icon className="h-4 w-4 sm:mr-2" />
+      <span className="hidden sm:inline">Texto da Aba</span>
+    </TabsTrigger>
+  </TabsList>
+</div>
+```
+Mobile: apenas ícone. Desktop (≥ sm): ícone + texto.
+
+### Padrão Hook
+
 ```typescript
-// Em TestePercentilResultado.tsx (exportada)
-function getDisplayScore(raw: number): number {
-  if (raw < 95) return Math.round(raw * 75 / 95);
-  return Math.round(75 + (raw - 95) * 5);
+export function useTestesAutoAvaliacao(colaboradorId?: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["pdi_testes_auto_avaliacao", colaboradorId ?? "own"],
+    queryFn: async () => {
+      let q = supabase.from("pdi_testes_auto_avaliacao" as any).select("*").order("created_at", { ascending: false });
+      if (colaboradorId) q = q.eq("colaborador_id", colaboradorId);
+      else if (user?.id) q = q.eq("user_id", user.id);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as unknown as TesteAutoAvaliacao[];
+    },
+    enabled: !!colaboradorId || !!user?.id,
+  });
+
+  const inserir = useMutation({
+    mutationFn: async (payload) => { /* insert */ },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pdi_testes_auto_avaliacao"] }),
+  });
+
+  return { ...query, inserir };
 }
 ```
 
-**Régua visual**: barra linear 0–100, marcador em `displayScore%`. Larguras de zona proporcionais (39% / 36% / 25%).
-
-**`getBandName` e `getDisplayScore`** são exportadas de `TestePercentilResultado.tsx` — importar dali ao exibir em outros componentes (ex: `TesteEquipeSection`, `Testes.tsx`).
-
-Sem migration SQL — classificação é 100% frontend; histórico reclassifica automaticamente.
-
----
-
-### Padrão Form → Resultado
-
-Cada tipo segue o fluxo:
-1. `*Form.tsx`: Dialog com React Hook Form + Zod; ao submeter insere em `pdi_testes` + tabela de resultado específica
-2. `*Resultado.tsx`: recebe `testeId`, carrega resultado via hook, exibe visualização (charts, scores, texto)
-3. A página `Testes.tsx` controla qual form/resultado abrir com base no `tipo`
-
-```tsx
-// Exemplo de controle na página
-{activeTab === 'perfil_comportamental' && (
-  <PerfilComportamentalForm open={formOpen} onOpenChange={setFormOpen} colaboradorId={selectedId} />
-)}
-```
+Query keys: `["pdi_testes_auto_avaliacao", colaboradorId ?? "own"]` — invalidar pela chave base.
 
 ---
 
 ## Imports
 
 ```ts
-import { useTestesPerfil } from '@testes/hooks/useTestesPerfil'
-import { useTestesCLevel } from '@testes/hooks/useTestesCLevel'
-import { useTestesBussola } from '@testes/hooks/useTestesBussola'
-import { useTestesPercentil } from '@testes/hooks/useTestesPercentil'
-import PerfilComportamentalForm from '@testes/components/testes/PerfilComportamentalForm'
+import { useTestesAutoAvaliacao } from '@/hooks/useTestesAutoAvaliacao'
+import { useTestesPerfil } from '@/hooks/useTestesPerfil'
+import { useTestesCLevel } from '@/hooks/useTestesCLevel'
+import { useTestesBussola } from '@/hooks/useTestesBussola'
+import { useTestesPercentil } from '@/hooks/useTestesPercentil'
+import TesteAutoAvaliacaoForm from '@/components/testes/TesteAutoAvaliacaoForm'
+import TesteAutoAvaliacaoResultado from '@/components/testes/TesteAutoAvaliacaoResultado'
 ```
 
 ---
 
 ## Restrições
 
-1. **Inserção atômica**: criar registro em `pdi_testes` e na tabela de resultado em uma única operação (ou transação via RPC)
-2. **Sem edição de testes concluídos** — testes são imutáveis após criação
-3. **Tipos são enum fixo** — não adicionar tipos novos sem migration no banco e atualização do enum
-4. **Acesso**: todos os roles autenticados podem ver testes; somente `admin_geral` e `admin_diretor` podem criar testes para outros colaboradores
+1. **Sem edição de testes concluídos** — testes são imutáveis após criação
+2. **Auto Avaliação não tem enum em `pdi_tipo_teste`** — usa tabela própria separada do enum legado
+3. **Acesso Auto Avaliação**: usuário vê/insere os próprios; `admin_geral`, `admin_ceo`, `admin_diretor` veem de qualquer colaborador
+4. **Acesso outros testes**: `admin_geral` e `admin_ceo` podem iniciar para qualquer colaborador; demais roles apenas os próprios
+5. `canStartTests` na Testes.tsx: `isAdmin || isCeo || isDiretor || isOwn || !colaboradorId`
 
 ---
 
@@ -127,4 +165,4 @@ import PerfilComportamentalForm from '@testes/components/testes/PerfilComportame
 
 **Standalone**: clonar para trabalhar nos formulários, lógica de scoring e visualização de resultados de forma isolada.
 
-**Delegado**: o orquestrador injeta este módulo ao coordenar tarefas que relacionem resultados de testes com PDI (competências) ou dashboard (KPIs comportamentais).
+**Delegado**: o orquestrador injeta este módulo ao coordenar tarefas que relacionem resultados de testes com PDI (competências), dashboard (KPIs) ou nota profissional do colaborador (feature futura).
