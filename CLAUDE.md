@@ -2,7 +2,30 @@
 
 ## Visão Geral
 
-Módulo de avaliações e testes comportamentais. Suporta **cinco tipos de teste** distintos, cada um com formulário de entrada e componente de exibição de resultados. Os resultados são armazenados em tabelas separadas por tipo.
+Módulo de avaliações e testes comportamentais + Score Consolidado. Suporta **cinco tipos de teste** distintos, cada um com formulário de entrada e componente de exibição de resultados, e consolida os scores dos 5 testes em uma régua percentil Robert Half v5 (P25°/P50°/P75°).
+
+## Score Consolidado (Robert Half v5)
+
+**Fluxo 100% automático — sem input humano:**
+1. Colaborador conclui os 5 testes (Auto, Perfil, C-Level, Bússola, Maturidade) e tem `cargo_id` vinculado no organograma.
+2. Ao abrir `TesteCLevelResultado` com status=concluido e score_numerico=null, dispara silenciosamente `gerarScoreIA` (ação `score` da Edge Function `clevel-ai`) → salva `score_numerico` em `pdi_testes_clevel`.
+3. Ao abrir `/app/score`, auto-compute derivado de `pdi_colaboradores.cargo_id → pdi_cargos.tipo+nivel` calcula a aderência DISC e insere linha em `pdi_score_consolidado`.
+4. Reteste a cada 6 meses (política UX) gera novas linhas → gráfico de evolução.
+
+**Fórmula (pesos fixos):** Auto 10% + Perfil 15% + C-Level 30% + Bússola 15% + Maturidade 30% → `score_raw` → `getDisplayScore` (piecewise) → banda P25°/P50°/P75°.
+
+**Acesso:**
+- gerente: só o próprio score
+- admin_diretor: próprio + equipe do setor; sem régua
+- admin_geral/admin_ceo: tudo + régua de distribuição
+
+**Arquivos novos:**
+- `utils/scoreCalculation.ts` — aderência DISC × cargo, normalizações (`MAX_AUTO=35`, `MAX_BUSSOLA=76`), `getDisplayScore`, `calculateScore`, `deriveAderenciaFromCargo`, `percentilSalarial`
+- `hooks/useScoreConsolidado.ts` — CRUD de `pdi_score_consolidado`, `latestByColaborador`
+- `components/score/` — ScoreCard, ScoreDecompositionTable, ScoreMissingChecklist, ScoreEvolutionChart, PercentileRulerChart, DossieCard
+- `pages/Score.tsx` — rota `/app/score` com auto-compute guardado por hash
+
+---
 
 ---
 

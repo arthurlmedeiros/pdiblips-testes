@@ -10,6 +10,7 @@ export interface TesteCLevel {
   respostas_aprofundamento: { pergunta: string; resposta: string }[] | null;
   laudo: string | null;
   status: string;
+  score_numerico: number | null;
   created_at: string;
   user_id: string;
 }
@@ -70,5 +71,40 @@ export function useTestesCLevel(colaboradorId?: string) {
     },
   });
 
-  return { ...query, criar, atualizar };
+  const gerarScoreIA = useMutation({
+    mutationFn: async (p: {
+      testeId: string;
+      respostas_iniciais: { pergunta: string; resposta: string }[];
+      respostas_aprofundamento: { pergunta: string; resposta: string }[];
+      laudo: string;
+      colaborador_cargo?: string;
+    }) => {
+      const { data: fn, error: fnErr } = await supabase.functions.invoke("clevel-ai", {
+        body: {
+          action: "score",
+          respostas_iniciais: p.respostas_iniciais,
+          respostas_aprofundamento: p.respostas_aprofundamento,
+          laudo: p.laudo,
+          colaborador_cargo: p.colaborador_cargo,
+        },
+      });
+      if (fnErr) throw fnErr;
+      const score_numerico = (fn as any)?.score_numerico as number;
+      if (typeof score_numerico !== "number") {
+        throw new Error("Edge Function não retornou score_numerico");
+      }
+      const { error } = await supabase
+        .from("pdi_testes_clevel" as any)
+        .update({ score_numerico } as any)
+        .eq("id", p.testeId);
+      if (error) throw error;
+      return score_numerico;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pdi_testes_clevel"] });
+      queryClient.invalidateQueries({ queryKey: ["pdi_score_consolidado"] });
+    },
+  });
+
+  return { ...query, criar, atualizar, gerarScoreIA };
 }

@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useTestesCLevel, type TesteCLevel } from "@/hooks/useTestesCLevel";
 import {
   Table,
   TableBody,
@@ -27,6 +28,11 @@ import {
 interface Props {
   laudo: string;
   createdAt?: string;
+  /**
+   * Objeto completo do teste. Se presente e status=concluido com score_numerico=null,
+   * dispara silenciosamente a geração do score numérico via IA (ação "score" de clevel-ai).
+   */
+  teste?: TesteCLevel;
 }
 
 const SECTION_ICONS: Record<string, React.ReactNode> = {
@@ -269,8 +275,26 @@ function SectionCard({ section }: { section: Section }) {
   );
 }
 
-export default function TesteCLevelResultado({ laudo, createdAt }: Props) {
+export default function TesteCLevelResultado({ laudo, createdAt, teste }: Props) {
   const sections = useMemo(() => parseSections(sanitizeLaudo(laudo)), [laudo]);
+
+  // Auto-trigger silencioso do score C-Level via IA
+  const { gerarScoreIA } = useTestesCLevel();
+  const triggered = useRef(false);
+  useEffect(() => {
+    if (triggered.current) return;
+    if (!teste) return;
+    if (teste.status !== "concluido") return;
+    if (teste.score_numerico !== null && teste.score_numerico !== undefined) return;
+    if (!teste.laudo) return;
+    triggered.current = true;
+    gerarScoreIA.mutate({
+      testeId: teste.id,
+      respostas_iniciais: teste.respostas_iniciais ?? [],
+      respostas_aprofundamento: teste.respostas_aprofundamento ?? [],
+      laudo: teste.laudo,
+    });
+  }, [teste?.id, teste?.status, teste?.score_numerico, teste?.laudo, gerarScoreIA]);
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
@@ -304,6 +328,11 @@ export default function TesteCLevelResultado({ laudo, createdAt }: Props) {
             <p className="text-xs text-muted-foreground">
               Gerado em {new Date(createdAt).toLocaleDateString("pt-BR")}
             </p>
+          )}
+          {teste?.score_numerico !== null && teste?.score_numerico !== undefined && (
+            <Badge variant="outline" className="mt-1 text-xs">
+              Score IA: {teste.score_numerico}/100
+            </Badge>
           )}
         </div>
         <Button variant="outline" size="sm" onClick={handlePrint}>

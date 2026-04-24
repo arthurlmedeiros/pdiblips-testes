@@ -297,7 +297,7 @@ const Testes = () => {
               />
             ) : verCLevel ? (
               <div className="space-y-4">
-                <TesteCLevelResultado laudo={verCLevel.laudo || "Laudo não disponível"} createdAt={verCLevel.created_at} />
+                <TesteCLevelResultado laudo={verCLevel.laudo || "Laudo não disponível"} createdAt={verCLevel.created_at} teste={verCLevel} />
                 <Button variant="outline" onClick={() => setVerCLevel(null)}>Voltar ao histórico</Button>
               </div>
             ) : (
