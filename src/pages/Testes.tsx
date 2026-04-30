@@ -514,17 +514,28 @@ const Testes = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Seção Minha Equipe — admin, CEO e diretores */}
-        {(isAdmin || isCeo || isDiretor) && colaboradores && colaboradores.length > 0 && (
-          <TesteEquipeSection
-            colaboradores={colaboradores.filter(c => c.user_id !== user?.id)}
-            onSelectColaborador={(id) => {
-              setColaboradorId(id);
-              resetStates();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
-        )}
+        {/* Seção Minha Equipe — admin/ceo veem todos; diretor/gerente veem subordinados diretos */}
+        {(() => {
+          const podeVerTodos = isAdmin || isCeo;
+          const meuColaboradorId = meuColaborador?.id;
+          const subordinadosDiretos = meuColaboradorId
+            ? (colaboradores ?? []).filter(c => c.gestor_id === meuColaboradorId)
+            : [];
+          const colaboradoresEquipe = podeVerTodos
+            ? (colaboradores ?? []).filter(c => c.user_id !== user?.id)
+            : subordinadosDiretos;
+          if (colaboradoresEquipe.length === 0) return null;
+          return (
+            <TesteEquipeSection
+              colaboradores={colaboradoresEquipe}
+              onSelectColaborador={(id) => {
+                setColaboradorId(id);
+                resetStates();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          );
+        })()}
         </>
       )}
     </div>
